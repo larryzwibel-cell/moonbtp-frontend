@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { BRANDS } from '../data/products'
 import TOP20_PRODUCTS from '../data/top20'
 
@@ -40,7 +41,8 @@ function ProductCard({ product, selectedBrands }) {
         {sorted.map(([brand,price],i) => {
           const url = product.prices[brand]?.url || BRAND_URLS[brand]?.(product.name) || '#'
           return (
-            <a key={brand} href={url} target="_blank" rel="noopener noreferrer sponsored" style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'8px 11px',borderRadius:9,textDecoration:'none',background:i===0?'rgba(124,58,237,0.12)':'#1A1A30',border:i===0?'1px solid rgba(124,58,237,0.35)':'1px solid #2A2A45'}}>
+            <a key={brand} href={url} target="_blank" rel="noopener noreferrer sponsored"
+              style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'8px 11px',borderRadius:9,textDecoration:'none',background:i===0?'rgba(124,58,237,0.12)':'#1A1A30',border:i===0?'1px solid rgba(124,58,237,0.35)':'1px solid #2A2A45'}}>
               <div style={{display:'flex',alignItems:'center',gap:7}}>
                 {i===0 && <span style={{color:'#10B981',fontSize:12}}>✓</span>}
                 <span style={{fontSize:12,color:i===0?'#F5F3FF':'#A89FC0',fontWeight:i===0?500:400}}>{brand}</span>
@@ -56,19 +58,30 @@ function ProductCard({ product, selectedBrands }) {
       </div>
       {saving > 0.01 && <div style={{marginTop:10,padding:'7px 11px',background:'rgba(16,185,129,0.08)',borderRadius:9,border:'1px solid rgba(16,185,129,0.2)',fontSize:12,color:'#10B981'}}>Économie potentielle : <strong>{saving.toFixed(2)} €</strong> par {product.unit}</div>}
       {product.tip && <div style={{marginTop:8,padding:'7px 11px',background:'rgba(124,58,237,0.06)',borderRadius:9,border:'1px solid rgba(124,58,237,0.15)',fontSize:11,color:'#A89FC0',lineHeight:1.5}}>💡 {product.tip}</div>}
-      <a href={getBestUrl(product)} target="_blank" rel="noopener noreferrer sponsored" style={{display:'block',marginTop:12,padding:'10px 0',borderRadius:10,background:'#7C3AED',color:'#fff',fontSize:13,fontWeight:500,textAlign:'center',textDecoration:'none'}}>Voir la meilleure offre →</a>
+      <a href={getBestUrl(product)} target="_blank" rel="noopener noreferrer sponsored"
+        style={{display:'block',marginTop:12,padding:'10px 0',borderRadius:10,background:'#7C3AED',color:'#fff',fontSize:13,fontWeight:500,textAlign:'center',textDecoration:'none'}}>
+        Voir la meilleure offre →
+      </a>
       <p style={{fontSize:10,color:'#6B6585',textAlign:'center',marginTop:6}}>Lien partenaire · prix vérifié sur le site de l'enseigne</p>
     </div>
   )
 }
 
 export default function Comparateur() {
-  const [search, setSearch] = useState('')
+  const [searchParams] = useSearchParams()
+  const [search, setSearch] = useState(searchParams.get('q') || '')
   const [cat, setCat] = useState('Tous')
   const [selectedBrands, setSelectedBrands] = useState([])
   const [sortBy, setSortBy] = useState('popular')
+
+  useEffect(() => {
+    const q = searchParams.get('q')
+    if (q) setSearch(q)
+  }, [searchParams])
+
   const toggleBrand = (b) => setSelectedBrands(prev => prev.includes(b) ? prev.filter(x=>x!==b) : [...prev,b])
   const cats = ['Tous',...new Set(TOP20_PRODUCTS.map(p=>p.cat))]
+
   const filtered = useMemo(() => {
     let list = TOP20_PRODUCTS.filter(p => {
       const ms = p.name.toLowerCase().includes(search.toLowerCase())
@@ -90,18 +103,61 @@ export default function Comparateur() {
     <div style={{maxWidth:1280,margin:'0 auto',padding:'40px 24px 80px'}}>
       <div style={{marginBottom:32}}>
         <h1 style={{fontSize:28,fontWeight:600,color:'#F5F3FF',marginBottom:8}}>Comparateur de matériaux BTP</h1>
-        <p style={{fontSize:14,color:'#A89FC0'}}>Top 20 matériaux les plus recherchés en France — cliquez sur une enseigne pour voir le prix exact.</p>
+        <p style={{fontSize:14,color:'#A89FC0'}}>Top 20 matériaux les plus recherchés — cliquez sur une enseigne pour voir le prix exact.</p>
       </div>
       <div style={{background:'#16162A',border:'1px solid #2A2A45',borderRadius:20,padding:24,marginBottom:24}}>
         <div style={{display:'flex',gap:12,marginBottom:18,flexWrap:'wrap'}}>
           <div style={{flex:1,minWidth:240,position:'relative'}}>
             <span style={{position:'absolute',left:14,top:'50%',transform:'translateY(-50%)',fontSize:16,color:'#6B6585'}}>🔍</span>
-            <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Rechercher un matériau..." style={{width:'100%',padding:'11px 14px 11px 42px',borderRadius:12,background:'#1A1A30',border:'1px solid #2A2A45',color:'#F5F3FF',fontSize:14,outline:'none'}}/>
+            <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Rechercher un matériau..."
+              style={{width:'100%',padding:'11px 14px 11px 42px',borderRadius:12,background:'#1A1A30',border:'1px solid #2A2A45',color:'#F5F3FF',fontSize:14,outline:'none'}}/>
           </div>
-          <select value={sortBy} onChange={e=>setSortBy(e.target.value)} style={{padding:'11px 16px',borderRadius:12,background:'#1A1A30',border:'1px solid #2A2A45',color:'#A89FC0',fontSize:13}}>
+          <select value={sortBy} onChange={e=>setSortBy(e.target.value)}
+            style={{padding:'11px 16px',borderRadius:12,background:'#1A1A30',border:'1px solid #2A2A45',color:'#A89FC0',fontSize:13}}>
             <option value="popular">Populaires</option>
             <option value="best">Prix croissant</option>
             <option value="saving">Économies max</option>
           </select>
         </div>
-        <div style={{display:'
+        <div style={{display:'flex',gap:7,flexWrap:'wrap',marginBottom:16}}>
+          {cats.map(c=>(
+            <button key={c} onClick={()=>setCat(c)}
+              style={{padding:'5px 13px',borderRadius:20,border:`1px solid ${cat===c?'#7C3AED':'#2A2A45'}`,background:cat===c?'rgba(124,58,237,0.2)':'none',color:cat===c?'#8B5CF6':'#6B6585',fontSize:12}}>
+              {c}
+            </button>
+          ))}
+        </div>
+        <div style={{display:'flex',gap:8,flexWrap:'wrap',alignItems:'center'}}>
+          <span style={{fontSize:12,color:'#6B6585'}}>Enseignes :</span>
+          {Object.entries(BRANDS).map(([brand,b])=>(
+            <button key={brand} onClick={()=>toggleBrand(brand)}
+              style={{display:'flex',alignItems:'center',gap:6,padding:'4px 12px',borderRadius:20,border:`1px solid ${selectedBrands.includes(brand)?b.color:'#2A2A45'}`,background:selectedBrands.includes(brand)?`${b.color}20`:'none',color:selectedBrands.includes(brand)?b.color:'#6B6585',fontSize:12}}>
+              <span style={{width:16,height:16,borderRadius:4,background:b.color,display:'inline-flex',alignItems:'center',justifyContent:'center',fontSize:8,fontWeight:700,color:'#fff'}}>{b.logo}</span>
+              {brand}
+            </button>
+          ))}
+          {selectedBrands.length>0 && <button onClick={()=>setSelectedBrands([])} style={{background:'none',border:'none',color:'#6B6585',fontSize:11,textDecoration:'underline'}}>Réinitialiser</button>}
+        </div>
+      </div>
+      <div style={{marginBottom:20,color:'#6B6585',fontSize:13}}>
+        <span style={{color:'#F5F3FF',fontWeight:500}}>{filtered.length}</span> produits trouvés
+        {search && <span> pour "<span style={{color:'#8B5CF6'}}>{search}</span>"</span>}
+      </div>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill, minmax(300px, 1fr))',gap:16}}>
+        {filtered.map(p=><ProductCard key={p.id} product={p} selectedBrands={selectedBrands}/>)}
+      </div>
+      {filtered.length === 0 && (
+        <div style={{textAlign:'center',padding:'80px 0',color:'#6B6585'}}>
+          <div style={{fontSize:40,marginBottom:16}}>🔍</div>
+          <p>Aucun résultat pour "{search}"</p>
+          <button onClick={()=>setSearch('')} style={{marginTop:16,padding:'8px 20px',borderRadius:10,background:'#7C3AED',border:'none',color:'#fff',fontSize:13,cursor:'pointer'}}>
+            Voir tous les matériaux
+          </button>
+        </div>
+      )}
+      <p style={{marginTop:40,fontSize:11,color:'#6B6585',textAlign:'center'}}>
+        MoonBTP peut percevoir une commission sur les achats via nos liens (affiliation Awin). Prix indicatifs — vérifiez sur le site de l'enseigne.
+      </p>
+    </div>
+  )
+}
