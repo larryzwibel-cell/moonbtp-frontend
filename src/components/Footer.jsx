@@ -32,6 +32,7 @@ export default function Footer() {
           {[
             { to: '/comparateur', label: 'Comparateur' },
             { to: '/artisans', label: 'Artisans' },
+      { to: '/blog', label: 'Blog' },
             { to: '/mentions-legales', label: 'Mentions légales' },
             { to: '/cgu', label: 'CGU' },
           ].map(({ to, label }) => (
