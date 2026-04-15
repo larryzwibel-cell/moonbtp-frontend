@@ -18,6 +18,13 @@ function getBestUrl(product) {
   return product.prices[best]?.url || BRAND_URLS[best]?.(product.name) || `https://www.google.com/search?q=${encodeURIComponent(product.name)}&tbm=shop`
 }
 
+function matchSearch(product, search) {
+  if (!search.trim()) return true
+  const terms = search.toLowerCase().split(' ').filter(t => t.length > 1)
+  const searchable = [product.name.toLowerCase(), product.cat.toLowerCase(), ...(product.keywords || [])].join(' ')
+  return terms.every(term => searchable.includes(term))
+}
+
 function ProductCard({ product, selectedBrands }) {
   const allPrices = Object.entries(product.prices).map(([b,v]) => [b, getPrice(v)])
   const filtered = selectedBrands.length > 0 ? allPrices.filter(([b]) => selectedBrands.includes(b)) : allPrices
@@ -25,7 +32,6 @@ function ProductCard({ product, selectedBrands }) {
   const sorted = [...filtered].sort((a,b) => a[1]-b[1])
   const saving = sorted[sorted.length-1][1] - sorted[0][1]
   const savingPct = Math.round((saving/sorted[sorted.length-1][1])*100)
-
   return (
     <div style={{background:'#16162A',border:'1px solid #2A2A45',borderRadius:16,padding:20,position:'relative',display:'flex',flexDirection:'column'}}>
       {product.popular && <span style={{position:'absolute',top:12,right:12,background:'rgba(124,58,237,0.15)',color:'#8B5CF6',border:'1px solid rgba(124,58,237,0.35)',fontSize:9,fontWeight:700,padding:'2px 8px',borderRadius:20}}>POPULAIRE</span>}
@@ -74,21 +80,13 @@ export default function Comparateur() {
   const [selectedBrands, setSelectedBrands] = useState([])
   const [sortBy, setSortBy] = useState('popular')
 
-  useEffect(() => {
-    const q = searchParams.get('q')
-    if (q) setSearch(q)
-  }, [searchParams])
+  useEffect(() => { const q = searchParams.get('q'); if (q) setSearch(q) }, [searchParams])
 
   const toggleBrand = (b) => setSelectedBrands(prev => prev.includes(b) ? prev.filter(x=>x!==b) : [...prev,b])
   const cats = ['Tous',...new Set(TOP20_PRODUCTS.map(p=>p.cat))]
 
   const filtered = useMemo(() => {
-    let list = TOP20_PRODUCTS.filter(p => {
-      const ms = p.name.toLowerCase().includes(search.toLowerCase())
-      const mc = cat==='Tous' || p.cat===cat
-      const mb = selectedBrands.length===0 || selectedBrands.some(b=>p.prices[b]!==undefined)
-      return ms&&mc&&mb
-    })
+    let list = TOP20_PRODUCTS.filter(p => matchSearch(p, search) && (cat==='Tous'||p.cat===cat) && (selectedBrands.length===0||selectedBrands.some(b=>p.prices[b]!==undefined)))
     if(sortBy==='best') list=list.sort((a,b)=>Math.min(...Object.values(a.prices).map(getPrice))-Math.min(...Object.values(b.prices).map(getPrice)))
     if(sortBy==='saving') list=list.sort((a,b)=>{
       const sa=Math.max(...Object.values(a.prices).map(getPrice))-Math.min(...Object.values(a.prices).map(getPrice))
@@ -109,7 +107,8 @@ export default function Comparateur() {
         <div style={{display:'flex',gap:12,marginBottom:18,flexWrap:'wrap'}}>
           <div style={{flex:1,minWidth:240,position:'relative'}}>
             <span style={{position:'absolute',left:14,top:'50%',transform:'translateY(-50%)',fontSize:16,color:'#6B6585'}}>🔍</span>
-            <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Rechercher un matériau..."
+            <input value={search} onChange={e=>setSearch(e.target.value)}
+              placeholder="Ex: plaque BA13, isolant, fenêtre PVC, parquet chêne..."
               style={{width:'100%',padding:'11px 14px 11px 42px',borderRadius:12,background:'#1A1A30',border:'1px solid #2A2A45',color:'#F5F3FF',fontSize:14,outline:'none'}}/>
           </div>
           <select value={sortBy} onChange={e=>setSortBy(e.target.value)}
@@ -120,12 +119,7 @@ export default function Comparateur() {
           </select>
         </div>
         <div style={{display:'flex',gap:7,flexWrap:'wrap',marginBottom:16}}>
-          {cats.map(c=>(
-            <button key={c} onClick={()=>setCat(c)}
-              style={{padding:'5px 13px',borderRadius:20,border:`1px solid ${cat===c?'#7C3AED':'#2A2A45'}`,background:cat===c?'rgba(124,58,237,0.2)':'none',color:cat===c?'#8B5CF6':'#6B6585',fontSize:12}}>
-              {c}
-            </button>
-          ))}
+          {cats.map(c=><button key={c} onClick={()=>setCat(c)} style={{padding:'5px 13px',borderRadius:20,border:`1px solid ${cat===c?'#7C3AED':'#2A2A45'}`,background:cat===c?'rgba(124,58,237,0.2)':'none',color:cat===c?'#8B5CF6':'#6B6585',fontSize:12}}>{c}</button>)}
         </div>
         <div style={{display:'flex',gap:8,flexWrap:'wrap',alignItems:'center'}}>
           <span style={{fontSize:12,color:'#6B6585'}}>Enseignes :</span>
@@ -146,13 +140,12 @@ export default function Comparateur() {
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill, minmax(300px, 1fr))',gap:16}}>
         {filtered.map(p=><ProductCard key={p.id} product={p} selectedBrands={selectedBrands}/>)}
       </div>
-      {filtered.length === 0 && (
+      {filtered.length===0 && (
         <div style={{textAlign:'center',padding:'80px 0',color:'#6B6585'}}>
           <div style={{fontSize:40,marginBottom:16}}>🔍</div>
-          <p>Aucun résultat pour "{search}"</p>
-          <button onClick={()=>setSearch('')} style={{marginTop:16,padding:'8px 20px',borderRadius:10,background:'#7C3AED',border:'none',color:'#fff',fontSize:13,cursor:'pointer'}}>
-            Voir tous les matériaux
-          </button>
+          <p style={{marginBottom:8}}>Aucun résultat pour "<span style={{color:'#8B5CF6'}}>{search}</span>"</p>
+          <p style={{fontSize:12,marginBottom:20}}>Essayez : parpaing, isolant, carrelage, fenêtre, parquet, câble...</p>
+          <button onClick={()=>setSearch('')} style={{padding:'8px 20px',borderRadius:10,background:'#7C3AED',border:'none',color:'#fff',fontSize:13,cursor:'pointer'}}>Voir tous les matériaux</button>
         </div>
       )}
       <p style={{marginTop:40,fontSize:11,color:'#6B6585',textAlign:'center'}}>
