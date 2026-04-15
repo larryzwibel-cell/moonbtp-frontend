@@ -6,10 +6,10 @@ export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false)
 
   const navLinks = [
-    { to: '/comparateur', label: 'Matériaux' },
-    { to: '/artisans', label: 'Artisans' },
-  ]
-
+  { to: '/comparateur', label: 'Matériaux' },
+  { to: '/artisans', label: 'Artisans' },
+  { to: '/blog', label: 'Blog' },
+]
   return (
     <header style={{
       background: 'rgba(10,10,15,0.95)',
