@@ -9,6 +9,7 @@ export default function Header() {
   { to: '/comparateur', label: 'Matériaux' },
   { to: '/artisans', label: 'Artisans' },
   { to: '/blog', label: 'Blog' },
+    { to: '/budget', label: 'Budget' },
 ]
   return (
     <header style={{
